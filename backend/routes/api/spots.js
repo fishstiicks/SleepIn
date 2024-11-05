@@ -165,18 +165,67 @@ router.delete('/:spotId', async (req, res) => {
         where: { id: spotId }
     });
 
-    return res.json({ message: 'Successfully deleted' });
+    return res.status(400).json({ message: 'Successfully deleted' });
     }
   );
 
-// Edits spot
+// Edits spot//NOT DONE//this only allows edit if user is authenticated and owner of spot
 router.put('/:spotId', async (req, res) => {
-})
+    if (!req.user) {
+        return res.status(401).json({ message: 'Authentification required'});
+    }
+            //find the spot
+    const { spotId } = req.params;
+    const spot = await Spot.findOne({where: {id:spotId}});
+
+            //if no spot then bad request 400 CHANGE BACK TO 400
+    if(!spot){
+       return res.status(405).json({message: "Bad Request"});
+    }
+
+    if (spot.ownerId === req.user.id) {
+        return res.status(403).json({ message: 'You must be owner' });
+    }
+            //update spot+save
+    
+    spot.set({
+            address: req.body.address,
+            city: req.body.city,
+            state: req.body.state,
+            country: req.body.country,
+            lat: req.body.lat,
+            lng: req.body.lng,
+            name: req.body.name,
+            description: req.body.description,
+            price: req.body.price
+        })
+    
+
+    await spot.save();
+
+    return res.status(200).json({spot});
+    }
+)
 
 
 // Adds image to spot
 router.post('/:spotId', async (req, res) => {
-})
+
+    const {spotId} = req.params;
+
+    const spot = await Spot.findOne({where: {id: spotId}});
+
+    if(!spot){
+        return res.status(404).json({message: "Spot couldn't be found"})
+    }
+
+    const image = req.file.path;
+    spot.images.push(image)
+    await spot.save();
+
+    return res.status(201).json({spot})
+    }
+)
 
 // Delete image from spot
 router.post('/:spotId/:imageId', async (req, res) => {
