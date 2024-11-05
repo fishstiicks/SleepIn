@@ -1,11 +1,9 @@
 const express = require('express');
 const { Review } = require('../../db/models');
 const { reviewImage } = require('../../db/models');
+const { UPDATE } = require('sequelize/lib/query-types');
 const router = express.Router();
 
-// Get review by ID
-router.get('/:reviewId', async (req, res) => {
-})
 
 // Add image to review by ID
 router.post('/:reviewId', async (req, res) => {
@@ -15,7 +13,13 @@ router.post('/:reviewId', async (req, res) => {
     }
 
     const { reviewId } = req.params;
-    const { review } = await Review.findbyPk(reviewId);
+    const review = await Review.findbyPk(reviewId);
+
+    if (!review) {
+        return res.status(404).json({
+           "message": "Review couldn't be found"
+        })
+    }
 
     if (review.userId !== req.user.id) {
         return res.status(403).json({ "message": "Forbidden" });
@@ -42,13 +46,44 @@ router.put('/:reviewId', async (req, res) => {
     }
 
     const { reviewId } = req.params;
-    const { review } = await Review.findbyPk(reviewId);
+    const { review, stars } = req.body;
+    const currentReview = await Review.findbyPk(reviewId);
 
-    if (review.userId !== req.user.id) {
+    if (!currentReview) {
+        return res.status(404).json({
+           "message": "Review couldn't be found"
+        })
+    }
+
+    if (currentReview.userId !== req.user.id) {
         return res.status(403).json({ "message": "Forbidden" });
     }
 
+    // Data Validation
+    if (!review) { return res.status(400).json({
+        "message": "Bad Request",
+        "errors": {"review": "Review text is required"}})}
+
+    if (stars < 1 || stars > 5) { return res.status(400).json({
+        "message": "Bad Request",
+        "errors": {"review": "Stars must be an integer from 1 to 5"}})}
+
     // Construct
+    currentReview.review = review;
+    currentReview.stars = stars;
+    currentReview.updatedAt = Sequelize.literal('CURRENT TIMESTAMP');
+
+    await existingReview.save();
+
+    return res.status(200).json({
+        id: currentReview.id,
+        userId: currentReview.userId,
+        spotId: currentReview.spotId,
+        review: currentReview.review,
+        stars: currentReview.stars,
+        createdAt: currentReview.createdAt,
+        updatedAt: currentReview.updatedAt
+    })
 })
 
 
@@ -60,7 +95,7 @@ router.delete('/:reviewId', async (req, res) => {
     }
 
     const { reviewId } = req.params;
-    const { review } = await Review.findbyPk(reviewId);
+    const review  = await Review.findbyPk(reviewId);
 
     if (review.userId !== req.user.id) {
         return res.status(403).json({ "message": "Forbidden" });
@@ -89,8 +124,8 @@ router.delete('/:reviewId/:imageId', async(req, res) => {
     }
 
     const { reviewId, imageId } = req.params;
-    const { review } = await Review.findbyPk(reviewId);
-    const { reviewImage } = await reviewImage.findbyPk(reviewId);
+    const review = await Review.findbyPk(reviewId);
+    const reviewImage = await reviewImage.findbyPk(reviewId);
 
     if (review.userId !== req.user.id) {
         return res.status(403).json({ "message": "Forbidden" });
