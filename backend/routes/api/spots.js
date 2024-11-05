@@ -1,6 +1,6 @@
 const express = require('express');
 const { Spot } = require('../../db/models');
-const SpotImage = require('../../db/models');
+const { SpotImage } = require('../../db/models');
 const { Booking } = require('../../db/models');
 const review = require('../../db/models');
 const router = express.Router();
@@ -237,8 +237,6 @@ router.post('/:spotId', async (req, res) => {
         url: spotimg.url,
         preview: spotimg.preview
     }
-
-    returnImg.save();
 
     return res.status(201).json({spotImage: returnImg})})
 
