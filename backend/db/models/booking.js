@@ -2,6 +2,7 @@
 const {
   Model
 } = require('sequelize');
+const { Sequelize } = require('.');
 module.exports = (sequelize, DataTypes) => {
   class Booking extends Model {
     /**
@@ -17,23 +18,41 @@ module.exports = (sequelize, DataTypes) => {
     {
       userId: {
         type: DataTypes.INTEGER,
-        allowNull: false
+        allowNull: false,
+        references: {
+          model: 'User',
+          key: 'id'
+        }
       },
       spotId: {
         type: DataTypes.INTEGER,
-        allowNull: false
-      },
-      spot: {
-        type: DataTypes.STRING,
-        allowNull: false
+        allowNull: false,
+        references: {
+          model: 'Spot',
+          key: 'id'
+        }
       },
       startDate: {
         type: DataTypes.DATE,
-        allowNull: false
+        allowNull: false,
+        validate: {
+          isFuture (value) {
+            if (value < Sequelize.literal('CURRENT TIMESTAMP')) {
+              throw new Error("startDate cannot be in the past")
+            }
+          }
+        }
       },
       endDate: {
         type: DataTypes.DATE,
-        allowNull: false
+        allowNull: false,
+        validate: {
+          isFuture (value) {
+            if (value <= this.startDate) {
+              throw new Error("endDate cannot be on or before startDate")
+            }
+          }
+        }
       }
     },
     {sequelize,
